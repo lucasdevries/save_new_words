@@ -10,29 +10,48 @@ body { margin:0; background:var(--bg); color:var(--txt);
 .wrap { max-width:560px; margin:0 auto; padding:24px 16px 64px; }
 h1 { font-size:20px; margin:0 0 16px; display:flex; align-items:center; gap:8px; }
 .row-top { display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+.row-top.tight { margin-bottom:8px; }
 .count { color:var(--muted); font-size:14px; white-space:nowrap; }
+select { padding:9px 34px 9px 12px; border-radius:10px; border:1px solid var(--line);
+         background:var(--card); color:var(--txt); font-size:15px; flex:1; min-width:160px;
+         -webkit-appearance:none; appearance:none;
+         background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238b93a7' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
+         background-repeat:no-repeat; background-position:right 12px center; }
 .pill { padding:9px 12px; border-radius:10px; border:1px solid var(--line);
         background:var(--card); color:var(--txt); font-size:14px; cursor:pointer;
         white-space:nowrap; }
+.pill.active { border-color:var(--accent); background:var(--accent); color:#fff; }
+.pill:disabled { opacity:.45; cursor:default; }
+/* hover only on real mouse devices — on touch screens :hover sticks after a
+   tap and made toggles look active when they weren't */
 @media (hover:hover) and (pointer:fine) {
   .pill:hover { border-color:var(--accent); }
+  .pill:disabled:hover { border-color:var(--line); }
   .pill.danger:hover { border-color:var(--bad); color:var(--bad); }
   .btn:hover { border-color:var(--accent); }
   .btn.good:hover { background:var(--done); color:#fff; }
+  .btn.bad:hover  { background:var(--bad);  color:#fff; }
 }
 input { padding:12px 14px; border-radius:12px; border:1px solid var(--line);
         background:var(--card); color:var(--txt); font-size:16px; min-width:0; }
 input:focus { outline:none; border-color:var(--accent); }
-#searchInput { flex:1; }
+#searchInput, #typeInput { flex:1; }
 .btn { padding:12px 22px; border-radius:12px; border:1px solid var(--line);
        background:var(--btn); color:var(--txt); font-size:16px; cursor:pointer; }
 .btn.good { border-color:var(--done); color:var(--done); }
+.btn.bad  { border-color:var(--bad);  color:var(--bad); }
+.bar { height:8px; border-radius:4px; background:var(--btn); border:1px solid var(--line);
+       overflow:hidden; margin:6px 0 16px; }
+.bar > div { height:100%; background:var(--done); width:0; transition:width .2s; }
 .fcard { background:var(--card); border:1px solid var(--line); border-radius:12px;
-         padding:34px 22px; text-align:center; margin-bottom:14px;
+         padding:34px 22px; text-align:center; margin-bottom:14px; min-height:220px;
          display:flex; flex-direction:column; justify-content:center; gap:14px; }
+.fcard .nl { font-size:22px; }
+.fcard .fr { font-size:22px; color:var(--accent); border-top:1px solid var(--line); padding-top:14px; }
+.actions { display:flex; gap:10px; justify-content:center; }
 .addcard { background:var(--card); border:1px solid var(--line); border-radius:12px;
            padding:16px; margin-bottom:18px; display:flex; flex-direction:column; gap:10px; }
-.banner { text-align:center; color:var(--bad); font-size:14px; }
+.banner { text-align:center; color:var(--bad); font-size:14px; margin-bottom:8px; }
 .hint { color:var(--muted); font-size:13px; text-align:center; }
 .theme-toggle { position:fixed; top:14px; right:14px; width:34px; height:34px;
         border-radius:50%; border:1px solid var(--line); background:var(--card);
@@ -46,7 +65,12 @@ input:focus { outline:none; border-color:var(--accent); }
 .ovrow:last-child { border-bottom:none; }
 .ovrow .ovnl { flex:1; }
 .ovrow .ovfr { flex:1; color:var(--accent); }
+.ovrow .ovok { color:var(--done); flex:none; }
 .ovrow .ovdel { flex:none; border:none; background:none; color:var(--muted);
                 font-size:14px; cursor:pointer; padding:0 2px; }
 .ovrow .ovdel:hover { color:var(--bad); }
+.summary { text-align:center; font-size:18px; margin:8px 0 4px; }
+.tabs { display:flex; gap:10px; margin-bottom:18px; }
+.text-btn { border:none; background:none; color:var(--accent); cursor:pointer;
+            font-size:14px; padding:0; }
 .hidden { display:none !important; }

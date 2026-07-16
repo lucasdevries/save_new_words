@@ -1,15 +1,20 @@
-# Wordlist — NL ↔ FR word list
+# Wordlist — NL ↔ FR word lists with flashcards
 
 Static PWA without a build step: `index.html` + `app.js` + `style.css` live
-directly in the repo root and are served by GitHub Pages. Storage in Firebase
-Firestore (collection `words`), login via Firebase Auth with one shared
-email/password account. See README.md for the one-time setup.
+directly in the repo root and are served by GitHub Pages. Firebase Auth
+(email/password, open sign-up — every account gets its own list) and Firestore
+storage, all per account under `users/{uid}/`: `lessons/{id}` (title) and
+`words/{id}` (nl, fr, lesson, learned, wrong, createdAt — progress lives on
+the word doc). The flashcard engine is ported from `../learn_words`; keep the
+behaviour aligned. See README.md for the one-time setup.
 
 - Test locally: `python3 -m http.server 8000` → http://localhost:8000
 - Deploy: simply commit and push to `main` (GitHub Pages).
 - `firebase-config.js` contains the (public) project config; security lives in
-  `firestore.rules` + disabled sign-ups. The Firebase project is tied to
-  Lucas's **personal** Google account — never through a work account.
+  `firestore.rules` (each uid only reaches its own subtree). The Firebase
+  project is tied to Lucas's **personal** Google account — never through a
+  work account. Rules changes must be pasted into the Firebase console by
+  Lucas (Firestore → Rules) — there is no CLI deploy set up.
 
 ## Versioning
 

@@ -1,13 +1,19 @@
 # Wordlist 📓
 
-A tiny shared notebook for NL ↔ FR words: type a word pair, tap **Add**, and it
-is stored in a free Firebase database (Firestore). The list is searchable and
-live-shared: everyone who is logged in immediately sees what the other adds.
-Works as a PWA on the phone and is usable offline (additions are sent as soon
-as the connection is back).
+A personal NL ↔ FR word notebook with built-in flashcards. Everyone creates
+their own account and gets their own wordlist, organised in lessons:
 
-Styling and setup like [learn_words](../learn_words); hosting on GitHub Pages
-like [julius-km-registratie](https://github.com/lucasdevries/kilometerregistratie).
+- **Notebook**: type a word pair, tap **Add** — stored in a free Firebase
+  database (Firestore), searchable, exportable as CSV.
+- **Practice**: flashcard sessions per lesson (ported from
+  [learn_words](../learn_words)) — start new/all, a retry round for mistakes,
+  a 25-card test across lessons at 80%+, a "Tricky" session for your most
+  missed cards, type-the-answer mode and French pronunciation.
+
+Progress lives in the cloud, not on the device: log in on a new phone and
+everything is there. Works as a PWA and is usable offline (changes sync when
+the connection is back). Hosted on GitHub Pages like
+[julius-km-registratie](https://github.com/lucasdevries/kilometerregistratie).
 
 ## One-time setup
 
@@ -23,17 +29,13 @@ like [julius-km-registratie](https://github.com/lucasdevries/kilometerregistrati
 3. **Build → Firestore Database → Create database** → location `eur3 (europe-west)`
    → **production mode**.
 4. **Rules** tab: replace the contents with [`firestore.rules`](firestore.rules)
-   and click **Publish**. (Only signed-in users can then read/write.)
+   and click **Publish**. (Each account can then only touch its own data.)
 5. **Build → Authentication → Get started** → **Email/Password** → enable only
-   "Email/Password" → Save.
-6. **Users → Add user** tab: create one shared account (email + made-up
-   password). Share it with whoever should be able to add words — everyone
-   logs in as the same user.
-7. **Settings** tab:
-   - **User actions**: untick **"Enable create (sign-up)"**, so strangers cannot
-     create their own account.
-   - **Authorized domains**: add `lucasdevries.github.io` (localhost is already there).
-8. Go to **Project Overview → ⚙ Project settings → Your apps → `</>` (web)**,
+   "Email/Password" → Save. Sign-ups stay enabled so people can create their
+   own account from the login screen.
+6. **Settings → Authorized domains**: add `lucasdevries.github.io`
+   (localhost is already there).
+7. Go to **Project Overview → ⚙ Project settings → Your apps → `</>` (web)**,
    register an app (name doesn't matter, no hosting needed) and copy the
    `firebaseConfig` object into [`firebase-config.js`](firebase-config.js) in
    this repo. These values are not secret and can simply be committed.
@@ -53,26 +55,28 @@ The app then lives at `https://<username>.github.io/save_new_words/`
 (this instance: https://lucasdevries.github.io/save_new_words/).
 Test locally: `python3 -m http.server 8000` → http://localhost:8000.
 
-After filling in `firebase-config.js`: `git add -A && git commit -m "firebase config" && git push`.
-
 ### 3. On the phone
 
 1. Open the URL in Safari (iPhone) or Chrome (Android).
 2. **Share → Add to Home Screen** — the app then works as a standalone app.
-3. Log in once with the shared account; it is remembered.
+3. Log in once (or create an account); it is remembered.
 
 ## How it works
 
-- **Storage**: every word pair is a document in the Firestore collection
-  `words` (`nl`, `fr`, `createdAt`). The free Spark plan handles tens of
-  thousands of words and daily use with ease.
-- **Live list**: the list listens in realtime (`onSnapshot`) — when someone
-  else adds a word, you see it appear immediately.
-- **CSV export**: the ⬇ CSV button downloads the list as `words.csv`
-  (header `nl,fr`, oldest first) — ready to drop into `learn_words/lists/`.
-- **Offline**: Firestore caches the list locally; words added offline are sent
-  automatically once the connection is back.
-- **Deleting**: the ✕ behind a word (with confirmation), for typos.
-- **Security**: reading/writing requires being logged in; sign-up of new
-  accounts is disabled. The Firebase config in the repo is deliberately
+- **Data model**: everything is per account. `users/{uid}/lessons/{id}` holds
+  the lesson names; `users/{uid}/words/{id}` holds `nl`, `fr`, the lesson it
+  belongs to, and the learning progress (`learned`, `wrong`) right on the word
+  document. The free Spark plan handles this with ease.
+- **Flashcards**: same behaviour as learn_words — "Start new" quizzes the
+  not-yet-learned words, mistakes get a retry round, the mistake counter feeds
+  the "Tricky" session, and lessons at 80%+ supply the test pool. Marking a
+  card correct outside a test sets `learned`.
+- **Live sync**: the app listens in realtime (`onSnapshot`), so a second
+  device logged into the same account updates immediately.
+- **CSV export**: the ⬇ CSV button downloads the current lesson filter as
+  `<lesson>.csv` (header `nl,fr`, oldest first) — the exact format of
+  `learn_words/lists/`.
+- **Offline**: Firestore caches locally; anything done offline syncs later.
+- **Security**: Firestore rules restrict every account to its own
+  `users/{uid}/` subtree. The Firebase config in the repo is deliberately
   public — that is standard for Firebase web apps.

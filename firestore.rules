@@ -1,9 +1,10 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Only signed-in users (the shared account) can touch the words.
-    match /words/{word} {
-      allow read, write: if request.auth != null;
+    // Everyone owns exactly their own data: lessons, words and progress all
+    // live under users/{uid}/ and are only accessible to that account.
+    match /users/{uid}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
     }
   }
 }
