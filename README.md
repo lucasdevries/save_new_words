@@ -1,14 +1,17 @@
 # Wordlist 📓
 
-A personal NL ↔ FR word notebook with built-in flashcards. Everyone creates
-their own account and gets their own wordlist, organised in lessons:
+An NL ↔ FR vocabulary app with shared lessons and a personal notebook.
+Everyone creates their own account; the lessons are the same for everyone,
+but your notebook and your learning progress are yours alone.
 
 - **Notebook**: type a word pair, tap **Add** — stored in a free Firebase
-  database (Firestore), searchable, exportable as CSV.
+  database (Firestore), searchable, exportable as CSV. The lesson browser
+  also shows the shared lessons (read-only).
 - **Practice**: flashcard sessions per lesson (ported from
   [learn_words](../learn_words)) — start new/all, a retry round for mistakes,
   a 25-card test across lessons at 80%+, a "Tricky" session for your most
-  missed cards, type-the-answer mode and French pronunciation.
+  missed cards, type-the-answer mode and French pronunciation. Your notebook
+  practises like any other lesson.
 
 Progress lives in the cloud, not on the device: log in on a new phone and
 everything is there. Works as a PWA and is usable offline (changes sync when
@@ -63,10 +66,12 @@ Test locally: `python3 -m http.server 8000` → http://localhost:8000.
 
 ## How it works
 
-- **Data model**: everything is per account. `users/{uid}/lessons/{id}` holds
-  the lesson names; `users/{uid}/words/{id}` holds `nl`, `fr`, the lesson it
-  belongs to, and the learning progress (`learned`, `wrong`) right on the word
-  document. The free Spark plan handles this with ease.
+- **Data model**: the shared curriculum lives in `sharedLessons/{id}` (title)
+  and `sharedWords/{id}` (`nl`, `fr`, `lesson`) — readable by every account,
+  writable only by the admin account. Personal data lives under `users/{uid}/`:
+  `words/{id}` is the notebook (`nl`, `fr`, `learned`, `wrong`) and
+  `progress/{sharedWordId}` holds that user's progress over the shared words.
+  The free Spark plan handles this with ease.
 - **Flashcards**: same behaviour as learn_words — "Start new" quizzes the
   not-yet-learned words, mistakes get a retry round, the mistake counter feeds
   the "Tricky" session, and lessons at 80%+ supply the test pool. Marking a

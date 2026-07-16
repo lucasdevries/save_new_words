@@ -1,7 +1,7 @@
 // Simple service worker: app shell network-first (always fresh when online,
 // cache as offline fallback). Same-origin only; Firestore manages its own
 // offline cache. Bumping CACHE on a release cleans up old caches.
-const CACHE = 'wordlist-v0.4.0';
+const CACHE = 'wordlist-v0.5.0';
 
 self.addEventListener('install', e => self.skipWaiting());
 

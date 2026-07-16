@@ -2,11 +2,15 @@
 
 Static PWA without a build step: `index.html` + `app.js` + `style.css` live
 directly in the repo root and are served by GitHub Pages. Firebase Auth
-(email/password, open sign-up — every account gets its own list) and Firestore
-storage, all per account under `users/{uid}/`: `lessons/{id}` (title) and
-`words/{id}` (nl, fr, lesson, learned, wrong, createdAt — progress lives on
-the word doc). The flashcard engine is ported from `../learn_words`; keep the
-behaviour aligned. See README.md for the one-time setup.
+(email/password, open sign-up) and Firestore storage. The shared curriculum
+is in `sharedLessons/{id}` (title) and `sharedWords/{id}` (nl, fr, lesson) —
+read-only for users, writable only by the admin uid (Lucas, hardcoded in
+`firestore.rules`; curriculum changes go via REST scripts, not the app).
+Personal data sits under `users/{uid}/`: `words/{id}` is the notebook
+(nl, fr, learned, wrong — progress on the doc) and `progress/{sharedWordId}`
+is that user's progress over shared words. The flashcard engine is ported
+from `../learn_words`; keep the behaviour aligned. See README.md for the
+one-time setup.
 
 - Test locally: `python3 -m http.server 8000` → http://localhost:8000
 - Deploy: simply commit and push to `main` (GitHub Pages).

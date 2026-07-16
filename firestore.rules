@@ -1,8 +1,21 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Everyone owns exactly their own data: lessons, words and progress all
-    // live under users/{uid}/ and are only accessible to that account.
+    // Shared curriculum: every account can read the lessons; only the admin
+    // account (Lucas) can change them.
+    function isAdmin() {
+      return request.auth != null && request.auth.uid == 'TU8J3DXIOsMHOrlNJ7hmEkoddeI2';
+    }
+    match /sharedLessons/{lesson} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+    match /sharedWords/{word} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+    // Personal data: the notebook (words) and the per-user progress over the
+    // shared lessons are only accessible to that account.
     match /users/{uid}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }

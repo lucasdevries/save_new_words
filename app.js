@@ -1,6 +1,9 @@
-// Wordlist — per-account NL ↔ FR word lists with lessons and flashcards.
-// Words + progress live in Firestore under users/{uid}/; flashcard engine
-// ported from learn_words. Static, no build step; Firebase SDK via CDN.
+// Wordlist — shared NL ↔ FR lessons + a personal notebook, with flashcards.
+// Shared curriculum lives in sharedLessons/sharedWords (read-only for
+// everyone, maintained by the admin account); each user's own words live in
+// users/{uid}/words and their progress over the shared lessons in
+// users/{uid}/progress. Flashcard engine ported from learn_words.
+// Static, no build step; Firebase SDK via CDN.
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
 import {
   getAuth, onAuthStateChanged, signInWithEmailAndPassword,
@@ -8,11 +11,13 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
 import {
   initializeFirestore, persistentLocalCache, collection, query, orderBy,
-  onSnapshot, addDoc, deleteDoc, updateDoc, writeBatch, doc, serverTimestamp,
+  onSnapshot, addDoc, deleteDoc, updateDoc, setDoc, writeBatch, doc,
+  serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 import firebaseConfig from "./firebase-config.js";
 
-const APP_VERSION = "0.4.0";
+const APP_VERSION = "0.5.0";
+const NOTEBOOK = "__notebook";   // pseudo-lesson id for the personal notebook
 const $ = s => document.querySelector(s);
 $("#version").textContent = "v" + APP_VERSION;
 
@@ -27,7 +32,7 @@ $("#themeToggle").onclick = () => {
   localStorage.setItem("theme", next); applyTheme(next);
 };
 
-// ---- firebase --------------------------------------------------------------
+// ---- firebase ---------------------------------------------------------------
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 // Local cache: everything stays readable offline and writes are queued
@@ -35,13 +40,36 @@ const auth = getAuth(app);
 const db = initializeFirestore(app, { localCache: persistentLocalCache() });
 
 let uid = null;
-let lessons = [];        // [{id, title}] in creation order
-let words = [];          // [{id, nl, fr, lesson, learned, wrong}] newest first
+let sharedLessons = [];  // [{id, title}] in creation order
+let sharedWords = [];    // [{id, nl, fr, lesson, createdAt}] oldest first
+let myWords = [];        // [{id, nl, fr, learned, wrong, createdAt}] newest first
+let progress = {};       // sharedWordId -> {learned, wrong}
+let lessons = [];        // view: shared lessons + the notebook pseudo-lesson
+let words = [];          // view: all words with lesson/learned/wrong resolved
 let unsubs = [];
 
-const lessonsCol = () => collection(db, "users", uid, "lessons");
-const wordsCol   = () => collection(db, "users", uid, "words");
+const myWordsCol  = () => collection(db, "users", uid, "words");
+const progressRef = id => doc(db, "users", uid, "progress", id);
 const lessonTitle = id => lessons.find(l => l.id === id)?.title || "?";
+
+function rebuildView() {
+  lessons = [...sharedLessons, { id: NOTEBOOK, title: "notebook", personal: true }];
+  if (current >= lessons.length) current = 0;
+  words = [
+    ...sharedWords.map(w => ({
+      ...w, personal: false,
+      learned: !!progress[w.id]?.learned,
+      wrong: progress[w.id]?.wrong || 0,
+    })),
+    ...myWords.map(w => ({
+      ...w, personal: true, lesson: NOTEBOOK,
+      learned: !!w.learned, wrong: w.wrong || 0,
+    })),
+  ];
+  renderLessonSelects();
+  renderList();
+  if (!$("#pick").classList.contains("hidden")) renderPick();
+}
 
 // ---- screens ----------------------------------------------------------------
 // Two levels: login vs app, and within the app the sub-screens. The notebook
@@ -91,54 +119,34 @@ $("#logoutBtn").onclick = () => { if (confirm("Log out on this device?")) signOu
 
 onAuthStateChanged(auth, user => {
   unsubs.forEach(u => u()); unsubs = [];
-  if (!user) { uid = null; show("login"); return; }
+  if (!user) {
+    uid = null;
+    sharedLessons = []; sharedWords = []; myWords = []; progress = {};
+    show("login");
+    return;
+  }
   uid = user.uid;
   authMsg(null);
   show("notebook");
-  unsubs.push(onSnapshot(query(lessonsCol(), orderBy("createdAt")), snap => {
-    lessons = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    if (current >= lessons.length) current = 0;
-    renderLessonSelects();
-    if ($("#pick").classList.contains("hidden") === false) renderPick();
+  unsubs.push(onSnapshot(query(collection(db, "sharedLessons"), orderBy("createdAt")), snap => {
+    sharedLessons = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    rebuildView();
   }));
-  unsubs.push(onSnapshot(query(wordsCol(), orderBy("createdAt", "desc")), snap => {
-    words = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    renderList();
-    if ($("#pick").classList.contains("hidden") === false) renderPick();
+  unsubs.push(onSnapshot(query(collection(db, "sharedWords"), orderBy("createdAt")), snap => {
+    sharedWords = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    rebuildView();
+  }));
+  unsubs.push(onSnapshot(query(myWordsCol(), orderBy("createdAt", "desc")), snap => {
+    myWords = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    rebuildView();
   }, err => { $("#wordCount").textContent = "Error: " + err.code; }));
+  unsubs.push(onSnapshot(collection(db, "users", uid, "progress"), snap => {
+    progress = Object.fromEntries(snap.docs.map(d => [d.id, d.data()]));
+    rebuildView();
+  }));
 });
 
-// ---- lessons ----------------------------------------------------------------
-async function newLesson() {
-  const title = (prompt("Name for the new lesson:") || "").trim();
-  if (!title) return null;
-  const ref = await addDoc(lessonsCol(), { title, createdAt: serverTimestamp() });
-  return ref.id;
-}
-
-function renderLessonSelects() {
-  const add = $("#addLesson"); add.innerHTML = "";
-  lessons.forEach(l => add.append(new Option(l.title, l.id)));
-  add.append(new Option("＋ New lesson…", "__new"));
-  const last = localStorage.getItem("lastLesson");
-  if (lessons.some(l => l.id === last)) add.value = last;
-  else if (lessons.length) add.value = lessons[lessons.length - 1].id;
-
-  const filter = $("#filterLesson");
-  const sel = filter.value;
-  filter.innerHTML = "";
-  filter.append(new Option("All lessons", ""));
-  lessons.forEach(l => filter.append(new Option(l.title, l.id)));
-  if ([...filter.options].some(o => o.value === sel)) filter.value = sel;
-}
-$("#addLesson").onchange = async e => {
-  if (e.target.value !== "__new") { localStorage.setItem("lastLesson", e.target.value); return; }
-  const id = await newLesson();          // snapshot re-renders the select
-  if (id) localStorage.setItem("lastLesson", id);
-  else e.target.value = localStorage.getItem("lastLesson") || "";
-};
-
-// ---- notebook: adding -------------------------------------------------------
+// ---- notebook: adding (always to the personal notebook) ----------------------
 let fbTimer = null;
 function feedback(msg, ok) {
   const fb = $("#addFb");
@@ -149,22 +157,16 @@ function feedback(msg, ok) {
   fbTimer = setTimeout(() => fb.classList.add("hidden"), 2500);
 }
 
-$("#addBtn").onclick = async () => {
+$("#addBtn").onclick = () => {
   const nl = $("#nlInput").value.trim();
   const fr = $("#frInput").value.trim();
   if (!nl || !fr) { feedback("Fill in both fields.", false); return; }
-  let lesson = $("#addLesson").value;
-  if (!lesson || lesson === "__new") {
-    lesson = await newLesson();
-    if (!lesson) { feedback("Create a lesson first.", false); return; }
-    localStorage.setItem("lastLesson", lesson);
-  }
-  const dup = words.find(w => w.lesson === lesson &&
+  const dup = myWords.find(w =>
     w.nl.toLowerCase() === nl.toLowerCase() && w.fr.toLowerCase() === fr.toLowerCase());
-  if (dup) { feedback("Already in this lesson.", false); return; }
+  if (dup) { feedback("Already in your notebook.", false); return; }
   // Not awaited: offline, the write stays in the local queue and the
   // Promise hangs until the connection is back — the UI must move on.
-  addDoc(wordsCol(), { nl, fr, lesson, learned: false, wrong: 0, createdAt: serverTimestamp() })
+  addDoc(myWordsCol(), { nl, fr, learned: false, wrong: 0, createdAt: serverTimestamp() })
     .catch(e => feedback("Saving failed (" + e.code + ").", false));
   feedback(`✓ ${nl} — ${fr}`, true);
   $("#nlInput").value = ""; $("#frInput").value = "";
@@ -173,9 +175,18 @@ $("#addBtn").onclick = async () => {
 $("#nlInput").addEventListener("keydown", e => { if (e.key === "Enter") $("#frInput").focus(); });
 $("#frInput").addEventListener("keydown", e => { if (e.key === "Enter") $("#addBtn").click(); });
 
-// ---- notebook: list + CSV export -------------------------------------------
+// ---- notebook: list + CSV export ---------------------------------------------
 $("#searchInput").oninput = renderList;
 $("#filterLesson").onchange = renderList;
+
+function renderLessonSelects() {
+  const filter = $("#filterLesson");
+  const sel = filter.value;
+  filter.innerHTML = "";
+  filter.append(new Option("All lessons", ""));
+  lessons.forEach(l => filter.append(new Option(l.personal ? "📓 my notebook" : l.title, l.id)));
+  filter.value = [...filter.options].some(o => o.value === sel) ? sel : NOTEBOOK;
+}
 
 function shownWords() {
   const q = $("#searchInput").value.trim().toLowerCase();
@@ -191,7 +202,8 @@ function renderList() {
   $("#wordCount").textContent = shown.length === words.length
     ? `${words.length} ${words.length === 1 ? "word" : "words"}`
     : `${shown.length} of ${words.length}`;
-  $("#emptyMsg").classList.toggle("hidden", words.length > 0);
+  $("#emptyMsg").classList.toggle("hidden",
+    !($("#filterLesson").value === NOTEBOOK && myWords.length === 0));
   const allLessons = !$("#filterLesson").value;
   const box = $("#wordList");
   box.innerHTML = "";
@@ -200,22 +212,23 @@ function renderList() {
     row.className = "ovrow";
     const nl = document.createElement("span"); nl.className = "ovnl"; nl.textContent = w.nl;
     const fr = document.createElement("span"); fr.className = "ovfr"; fr.textContent = w.fr;
+    row.append(nl, fr);
     if (allLessons) {   // viewing everything: show which lesson a word is in
       const tag = document.createElement("span");
-      tag.className = "count"; tag.textContent = lessonTitle(w.lesson);
-      row.append(nl, fr, tag);
-    } else {
-      row.append(nl, fr);
+      tag.className = "count"; tag.textContent = w.personal ? "📓" : lessonTitle(w.lesson);
+      row.append(tag);
     }
     const ok = document.createElement("span"); ok.className = "ovok";
     ok.textContent = w.learned ? "✓" : "";
-    ok.title = w.learned ? "Learned" : "";
-    const del = document.createElement("button");
-    del.className = "ovdel"; del.textContent = "✕"; del.title = "Delete";
-    del.onclick = () => {
-      if (confirm(`Delete "${w.nl} — ${w.fr}"?`)) deleteDoc(doc(wordsCol(), w.id));
-    };
-    row.append(nl, fr, ok, del);
+    row.append(ok);
+    if (w.personal) {   // only your own notebook words can be deleted
+      const del = document.createElement("button");
+      del.className = "ovdel"; del.textContent = "✕"; del.title = "Delete";
+      del.onclick = () => {
+        if (confirm(`Delete "${w.nl} — ${w.fr}"?`)) deleteDoc(doc(myWordsCol(), w.id));
+      };
+      row.append(del);
+    }
     box.appendChild(row);
   });
 }
@@ -225,33 +238,36 @@ function csvField(s) {
 }
 $("#exportBtn").onclick = () => {
   const lesson = $("#filterLesson").value;
-  const rows = ["nl,fr", ...shownWords().slice().reverse()  // oldest first
-    .map(w => csvField(w.nl) + "," + csvField(w.fr))];
+  const sorted = shownWords().slice()
+    .sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));  // oldest first
+  const rows = ["nl,fr", ...sorted.map(w => csvField(w.nl) + "," + csvField(w.fr))];
   // Leading BOM: learn_words reads utf-8-sig and Excel opens it correctly.
   const blob = new Blob(["\uFEFF" + rows.join("\n") + "\n"], { type: "text/csv;charset=utf-8" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = (lesson ? lessonTitle(lesson) : "words") + ".csv";
+  a.download = (lesson === NOTEBOOK ? "notebook" : lesson ? lessonTitle(lesson) : "words") + ".csv";
   a.click();
   URL.revokeObjectURL(a.href);
 };
 
-// ---- progress (Firestore instead of learn_words' localStorage) --------------
-function markLearned(id) {
-  const w = words.find(x => x.id === id);
-  if (w && w.learned) return;
-  updateDoc(doc(wordsCol(), id), { learned: true }).catch(() => {});
+// ---- progress (per user; on the word doc for notebook words, in
+// users/{uid}/progress for shared words) ---------------------------------------
+function markLearned(w) {
+  if (w.personal) updateDoc(doc(myWordsCol(), w.id), { learned: true }).catch(() => {});
+  else setDoc(progressRef(w.id), { learned: true }, { merge: true }).catch(() => {});
 }
 // Per-card mistake counter: wrong -> +1, correct -> -1 (min 0).
 // Cards with a positive count feed the "Tricky" session.
-function bumpWrong(id, d) {
-  const w = words.find(x => x.id === id);
-  if (!w) return;
-  const n = Math.max(0, (w.wrong || 0) + d);
-  if (n !== (w.wrong || 0)) updateDoc(doc(wordsCol(), id), { wrong: n }).catch(() => {});
+function bumpWrong(w, d) {
+  const cur = words.find(x => x.id === w.id && x.personal === w.personal);
+  const n = Math.max(0, (cur?.wrong || 0) + d);
+  if (n === (cur?.wrong || 0)) return;
+  if (w.personal) updateDoc(doc(myWordsCol(), w.id), { wrong: n }).catch(() => {});
+  else setDoc(progressRef(w.id), { wrong: n }, { merge: true }).catch(() => {});
 }
 function lessonWords(lessonId) {
-  return words.filter(w => w.lesson === lessonId).slice().reverse();  // oldest first
+  const ws = words.filter(w => w.lesson === lessonId);
+  return lessonId === NOTEBOOK ? ws.slice().reverse() : ws;  // oldest first
 }
 function weakPool() {
   return words.filter(w => w.wrong > 0).slice().sort((a, b) => b.wrong - a.wrong);
@@ -267,7 +283,7 @@ function testPool() {
   return { cards, lessons: names };
 }
 
-// ---- French TTS via the browser's speechSynthesis ---------------------------
+// ---- French TTS via the browser's speechSynthesis -----------------------------
 // (works on iPhone too; needs a tap to start — the 🔊 button — and the mute
 // switch silences it)
 let frVoice = null;
@@ -286,7 +302,7 @@ function speak(text) {
 }
 $("#speakBtn").onclick = () => { if (card) speak(card.fr); };
 
-// ---- type mode (answer by typing) — optional toggle, persisted --------------
+// ---- type mode (answer by typing) — optional toggle, persisted ----------------
 let typeOn = localStorage.getItem("typemode") === "1";
 function updateTypeBtn() { $("#typeToggle").classList.toggle("active", typeOn); }
 $("#typeToggle").onclick = () => {
@@ -297,7 +313,7 @@ updateTypeBtn();
 // Lenient answer comparison for type mode.
 function norm(s) {
   return s.toLowerCase().normalize("NFC").replace(/[’‘]/g, "'")
-          .replace(/\s+/g, " ").replace(/[.!?\u2026\u00a0 ]+$/g, "").trim();
+          .replace(/\s+/g, " ").replace(/[.!?…  ]+$/g, "").trim();
 }
 function deacc(s) { return s.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
 
@@ -309,7 +325,7 @@ function shuffle(a) {
   return a;
 }
 
-// ---- practice: lesson picker -------------------------------------------------
+// ---- practice: lesson picker ---------------------------------------------------
 let current = 0;
 
 function renderPick() {
@@ -326,7 +342,8 @@ function renderPick() {
   lessons.forEach((l, i) => {
     const ws = lessonWords(l.id);
     const d = ws.filter(w => w.learned).length;
-    sel.append(new Option(`Lesson ${l.title} — ${d}/${ws.length} learned`, i));
+    const name = l.personal ? "📓 my notebook" : `Lesson ${l.title}`;
+    sel.append(new Option(`${name} — ${d}/${ws.length} learned`, i));
   });
   sel.value = current;
 
@@ -354,15 +371,17 @@ $("#lessonSelect").onchange = e => { current = +e.target.value; renderPick(); };
 $("#resetLesson").onclick = () => {
   const l = lessons[current];
   if (!l) return;
-  if (!confirm(`Clear progress for lesson ${l.title}?`)) return;
+  if (!confirm(`Clear your progress for ${l.personal ? "your notebook" : "lesson " + l.title}?`)) return;
   const batch = writeBatch(db);
   lessonWords(l.id).forEach(w => {
-    if (w.learned) batch.update(doc(wordsCol(), w.id), { learned: false });
+    if (!w.learned) return;
+    if (w.personal) batch.update(doc(myWordsCol(), w.id), { learned: false });
+    else batch.set(progressRef(w.id), { learned: false }, { merge: true });
   });
   batch.commit().catch(() => {});
 };
 
-// ---- flashcard session --------------------------------------------------------
+// ---- flashcard session ----------------------------------------------------------
 let queue = [], retryQueue = [], card = null, revealed = false;
 let inRetry = false, isTest = false, roundTotal = 0, roundDone = 0, nGood = 0, nBad = 0, lastMode = "new";
 
@@ -463,10 +482,10 @@ $("#nextBtn").onclick = () => judge(true);
 
 function judge(good) {
   if (!revealed) return;
-  bumpWrong(card.id, good ? -1 : 1);
+  bumpWrong(card, good ? -1 : 1);
   if (good) {
     nGood++;
-    if (!isTest) markLearned(card.id);   // test doesn't count
+    if (!isTest) markLearned(card);   // test doesn't count
   } else {
     nBad++;
     if (!isTest && !inRetry) retryQueue.push(card);
@@ -490,7 +509,7 @@ function endSession() {
     const ws = lessonWords(l.id);
     const d = ws.filter(w => w.learned).length;
     $("#doneSummary").textContent = nBad === 0 ? "🎉 All correct!" : `Done — ${nGood} correct, ${nBad} wrong`;
-    $("#doneDetail").textContent = `Lesson ${l.title}: ${d} / ${ws.length} learned`;
+    $("#doneDetail").textContent = `${l.personal ? "Notebook" : "Lesson " + l.title}: ${d} / ${ws.length} learned`;
   }
   show("done");
 }
