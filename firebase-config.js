@@ -1,6 +1,6 @@
-// Config van het Firebase-project "save-new-words" (persoonlijk account).
-// Deze waarden zijn NIET geheim — de beveiliging zit in de Firestore-regels
-// en de login. Ze mogen dus gewoon in de (publieke) repo staan.
+// Config of the Firebase project "save-new-words" (personal account).
+// These values are NOT secret — security lives in the Firestore rules and
+// the login. They can safely sit in the (public) repo.
 export default {
   apiKey: "AIzaSyA-xLFkIiD5xa1slSFU8FazX-h9nC_-4gk",
   authDomain: "save-new-words.firebaseapp.com",

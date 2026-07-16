@@ -1,20 +1,20 @@
-# Zwart boekje — NL ↔ FR woordenlijst
+# Wordlist — NL ↔ FR word list
 
-Statische PWA zonder build-stap: `index.html` + `app.js` + `style.css` staan
-direct in de repo-root en worden door GitHub Pages geserveerd. Opslag in
-Firebase Firestore (collectie `words`), login via Firebase Auth met één
-gedeeld e-mail/wachtwoord-account. Zie README.md voor de eenmalige setup.
+Static PWA without a build step: `index.html` + `app.js` + `style.css` live
+directly in the repo root and are served by GitHub Pages. Storage in Firebase
+Firestore (collection `words`), login via Firebase Auth with one shared
+email/password account. See README.md for the one-time setup.
 
-- Lokaal testen: `python3 -m http.server 8000` → http://localhost:8000
-- Deployen: gewoon committen en pushen naar `main` (GitHub Pages).
-- `firebase-config.js` bevat de (publieke) projectconfig; beveiliging zit in
-  `firestore.rules` + uitgeschakelde sign-ups. Firebase-project hangt aan het
-  **persoonlijke** Google-account van Lucas — nooit via een werkaccount.
+- Test locally: `python3 -m http.server 8000` → http://localhost:8000
+- Deploy: simply commit and push to `main` (GitHub Pages).
+- `firebase-config.js` contains the (public) project config; security lives in
+  `firestore.rules` + disabled sign-ups. The Firebase project is tied to
+  Lucas's **personal** Google account — never through a work account.
 
 ## Versioning
 
-Versie staat op twee plekken en loopt gelijk: `APP_VERSION` in `app.js`
-(footer) en de `CACHE`-naam in `sw.js` (cache-invalidatie bij installed PWAs).
-Bump bij features de minor (0.1.0 → 0.2.0), bij fixes de patch; commit en tag
-`v<versie>`. Vormgeving is overgenomen van `../learn_words` — daar stijl-
-wijzigingen ook doorvoeren als ze generiek zijn.
+The version lives in two places that must stay in sync: `APP_VERSION` in
+`app.js` (footer) and the `CACHE` name in `sw.js` (cache invalidation for
+installed PWAs). Bump the minor for features (0.1.0 → 0.2.0), the patch for
+fixes; commit and tag `v<version>`. Styling is adopted from `../learn_words` —
+apply style changes there too when they are generic.

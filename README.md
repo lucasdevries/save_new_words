@@ -1,75 +1,78 @@
-# Zwart boekje 📓
+# Wordlist 📓
 
-Een piepklein "zwart boekje" voor NL ↔ FR woorden: typ een woordcombinatie, tik
-**Voeg toe**, en het staat opgeslagen in een gratis Firebase-database (Firestore).
-De lijst is doorzoekbaar en live gedeeld: iedereen die is ingelogd ziet direct
-wat de ander toevoegt. Werkt als PWA op de telefoon en is offline bruikbaar
-(toevoegingen worden verstuurd zodra er weer verbinding is).
+A tiny shared notebook for NL ↔ FR words: type a word pair, tap **Add**, and it
+is stored in a free Firebase database (Firestore). The list is searchable and
+live-shared: everyone who is logged in immediately sees what the other adds.
+Works as a PWA on the phone and is usable offline (additions are sent as soon
+as the connection is back).
 
-Vormgeving en opzet zoals [learn_words](../learn_words); hosting op GitHub Pages
-zoals [julius-km-registratie](https://github.com/lucasdevries/kilometerregistratie).
+Styling and setup like [learn_words](../learn_words); hosting on GitHub Pages
+like [julius-km-registratie](https://github.com/lucasdevries/kilometerregistratie).
 
-## Eenmalige installatie
+## One-time setup
 
-### 1. Firebase-project (de "backend") — ±5 minuten
+### 1. Firebase project (the "backend") — ±5 minutes
 
-> ⚠️ **Op een werklaptop:** doe dit in een **incognito/privé-venster** en log in
-> met je **persoonlijke** Google-account, zodat het project nooit aan een
-> werkaccount hangt.
+> ⚠️ **On a work laptop:** do this in an **incognito/private window** and sign
+> in with your **personal** Google account, so the project is never tied to a
+> work account.
 
-1. Ga naar [console.firebase.google.com](https://console.firebase.google.com)
-   en log in met je persoonlijke account.
-2. **Add project** → naam bijv. `zwart-boekje` → Google Analytics **uit** → aanmaken.
-3. **Build → Firestore Database → Create database** → locatie `eur3 (europe-west)`
+1. Go to [console.firebase.google.com](https://console.firebase.google.com)
+   and sign in with your personal account.
+2. **Add project** → name e.g. `save-new-words` → Google Analytics **off** → create.
+3. **Build → Firestore Database → Create database** → location `eur3 (europe-west)`
    → **production mode**.
-4. Tabblad **Rules**: vervang de inhoud door [`firestore.rules`](firestore.rules)
-   en klik **Publish**. (Alleen ingelogde gebruikers kunnen dan lezen/schrijven.)
-5. **Build → Authentication → Get started** → **Email/Password** → alleen
-   "Email/Password" aanzetten → Save.
-6. Tabblad **Users → Add user**: maak één gedeeld account aan (e-mail + zelfbedacht
-   wachtwoord). Dit deel je met je vriendin — jullie loggen als dezelfde gebruiker in.
-7. Tabblad **Settings**:
-   - **User actions**: vink **"Enable create (sign-up)"** uit, zodat vreemden geen
-     eigen account kunnen aanmaken.
-   - **Authorized domains**: voeg `lucasdevries.github.io` toe (localhost staat er al).
-8. Ga naar **Project Overview → ⚙ Project settings → Your apps → `</>` (web)**,
-   registreer een app (naam maakt niet uit, hosting niet nodig) en kopieer het
-   `firebaseConfig`-object naar [`firebase-config.js`](firebase-config.js) in deze
-   repo. Deze waarden zijn niet geheim en mogen gewoon gecommit worden.
+4. **Rules** tab: replace the contents with [`firestore.rules`](firestore.rules)
+   and click **Publish**. (Only signed-in users can then read/write.)
+5. **Build → Authentication → Get started** → **Email/Password** → enable only
+   "Email/Password" → Save.
+6. **Users → Add user** tab: create one shared account (email + made-up
+   password). Share it with whoever should be able to add words — everyone
+   logs in as the same user.
+7. **Settings** tab:
+   - **User actions**: untick **"Enable create (sign-up)"**, so strangers cannot
+     create their own account.
+   - **Authorized domains**: add `lucasdevries.github.io` (localhost is already there).
+8. Go to **Project Overview → ⚙ Project settings → Your apps → `</>` (web)**,
+   register an app (name doesn't matter, no hosting needed) and copy the
+   `firebaseConfig` object into [`firebase-config.js`](firebase-config.js) in
+   this repo. These values are not secret and can simply be committed.
 
-### 2. De app hosten
+### 2. Hosting the app
 
-De app is een statische pagina; GitHub Pages is gratis en voldoende:
+The app is a static page; GitHub Pages is free and sufficient:
 
 ```sh
-git init && git add -A && git commit -m "Zwart boekje"
+git init && git add -A && git commit -m "Wordlist"
 gh repo create save_new_words --public --source=. --push
 gh api repos/{owner}/save_new_words/pages -X POST \
   -f 'source[branch]=main' -f 'source[path]=/'
 ```
 
-De app staat dan op `https://<gebruikersnaam>.github.io/save_new_words/`
-(deze instantie: https://lucasdevries.github.io/save_new_words/).
-Lokaal testen: `python3 -m http.server 8000` → http://localhost:8000.
+The app then lives at `https://<username>.github.io/save_new_words/`
+(this instance: https://lucasdevries.github.io/save_new_words/).
+Test locally: `python3 -m http.server 8000` → http://localhost:8000.
 
-Na het invullen van `firebase-config.js`: `git add -A && git commit -m "firebase config" && git push`.
+After filling in `firebase-config.js`: `git add -A && git commit -m "firebase config" && git push`.
 
-### 3. Op de telefoon
+### 3. On the phone
 
-1. Open de URL in Safari (iPhone) of Chrome (Android).
-2. **Deel → Zet op beginscherm** — de app werkt daarna als losse app.
-3. Log één keer in met het gedeelde account; dat wordt onthouden.
+1. Open the URL in Safari (iPhone) or Chrome (Android).
+2. **Share → Add to Home Screen** — the app then works as a standalone app.
+3. Log in once with the shared account; it is remembered.
 
-## Hoe het werkt
+## How it works
 
-- **Opslag**: elke woordcombinatie is een document in de Firestore-collectie
-  `words` (`nl`, `fr`, `createdAt`). Het gratis Spark-plan kan tienduizenden
-  woorden en dagelijks gebruik moeiteloos aan.
-- **Live lijst**: de lijst luistert realtime mee (`onSnapshot`) — voegt je
-  vriendin iets toe, dan zie jij het meteen verschijnen.
-- **Offline**: Firestore cachet de lijst lokaal; offline toegevoegde woorden
-  worden automatisch verstuurd zodra er weer verbinding is.
-- **Verwijderen**: het ✕-je achter een woord (met bevestiging), voor typfouten.
-- **Beveiliging**: lezen/schrijven kan alleen ingelogd; aanmelden van nieuwe
-  accounts staat uit. De Firebase-config in de repo is bewust publiek — dat is
-  standaard bij Firebase-web-apps.
+- **Storage**: every word pair is a document in the Firestore collection
+  `words` (`nl`, `fr`, `createdAt`). The free Spark plan handles tens of
+  thousands of words and daily use with ease.
+- **Live list**: the list listens in realtime (`onSnapshot`) — when someone
+  else adds a word, you see it appear immediately.
+- **CSV export**: the ⬇ CSV button downloads the list as `words.csv`
+  (header `nl,fr`, oldest first) — ready to drop into `learn_words/lists/`.
+- **Offline**: Firestore caches the list locally; words added offline are sent
+  automatically once the connection is back.
+- **Deleting**: the ✕ behind a word (with confirmation), for typos.
+- **Security**: reading/writing requires being logged in; sign-up of new
+  accounts is disabled. The Firebase config in the repo is deliberately
+  public — that is standard for Firebase web apps.

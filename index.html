@@ -1,60 +1,60 @@
 <!doctype html>
-<html lang="nl">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Zwart boekje">
+<meta name="apple-mobile-web-app-title" content="Wordlist">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="stylesheet" href="style.css">
-<title>Zwart boekje — NL ↔ FR</title>
+<title>Wordlist — NL ↔ FR</title>
 </head>
 <body>
-<button class="theme-toggle" id="themeToggle" title="Licht/donker">🌙</button>
+<button class="theme-toggle" id="themeToggle" title="Toggle light/dark">🌙</button>
 <div class="wrap">
-  <h1>📓 Zwart boekje</h1>
+  <h1>📓 Wordlist</h1>
 
-  <!-- Firebase nog niet geconfigureerd -->
+  <!-- Firebase not configured yet -->
   <div id="setup" class="hidden">
     <div class="fcard">
-      <div>⚙️ Nog geen database gekoppeld.</div>
-      <div class="count">Vul <code>firebase-config.js</code> in — zie stap&nbsp;1 van de README.</div>
+      <div>⚙️ No database connected yet.</div>
+      <div class="count">Fill in <code>firebase-config.js</code> — see step&nbsp;1 of the README.</div>
     </div>
   </div>
 
-  <!-- login (eenmalig per apparaat) -->
+  <!-- login (once per device) -->
   <div id="login" class="hidden">
     <div class="fcard" style="text-align:left; gap:10px">
-      <div>Log één keer in op dit apparaat.</div>
-      <input id="loginEmail" type="email" placeholder="E-mail" autocomplete="username">
-      <input id="loginPass" type="password" placeholder="Wachtwoord" autocomplete="current-password">
-      <button class="btn" id="loginBtn">Inloggen</button>
+      <div>Log in once on this device.</div>
+      <input id="loginEmail" type="email" placeholder="Email" autocomplete="username">
+      <input id="loginPass" type="password" placeholder="Password" autocomplete="current-password">
+      <button class="btn" id="loginBtn">Log in</button>
       <div class="banner hidden" id="loginError"></div>
     </div>
   </div>
 
-  <!-- hoofdscherm -->
+  <!-- main screen -->
   <div id="main" class="hidden">
     <div class="addcard">
-      <input id="nlInput" placeholder="Nederlands…" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
-      <input id="frInput" placeholder="Frans…" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
-      <button class="btn good" id="addBtn">＋ Voeg toe</button>
+      <input id="nlInput" placeholder="Dutch…" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+      <input id="frInput" placeholder="French…" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+      <button class="btn good" id="addBtn">＋ Add</button>
       <div class="count hidden" id="addFb"></div>
     </div>
 
     <div class="row-top">
-      <input id="searchInput" placeholder="Zoeken…" autocomplete="off">
+      <input id="searchInput" placeholder="Search…" autocomplete="off">
       <span class="count" id="wordCount"></span>
-      <button class="pill" id="exportBtn" title="Download als CSV (nl,fr) voor learn_words">⬇ CSV</button>
+      <button class="pill" id="exportBtn" title="Download as CSV (nl,fr) for learn_words">⬇ CSV</button>
     </div>
 
     <div class="ovcard" id="wordList"></div>
-    <div class="empty hidden" id="emptyMsg">Nog geen woorden — voeg het eerste toe!</div>
+    <div class="empty hidden" id="emptyMsg">No words yet — add the first one!</div>
 
     <div class="row-top" style="margin-top:20px; justify-content:center">
-      <button class="pill danger" id="logoutBtn">Uitloggen</button>
+      <button class="pill danger" id="logoutBtn">Log out</button>
     </div>
   </div>
 

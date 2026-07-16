@@ -1,4 +1,4 @@
-/* Vormgeving overgenomen van learn_words (Mots). */
+/* Styling adopted from learn_words (Mots). */
 :root { --bg:#f3f3f3; --card:#ffffff; --line:#e4e4e8; --txt:#1a1c22;
         --muted:#6b7280; --accent:#4f9cff; --done:#2ec16b; --bad:#e05a5a; --btn:#f0f0f3; }
 :root[data-theme="dark"] {
