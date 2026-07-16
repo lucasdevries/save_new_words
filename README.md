@@ -64,6 +64,19 @@ Test locally: `python3 -m http.server 8000` → http://localhost:8000.
 2. **Share → Add to Home Screen** — the app then works as a standalone app.
 3. Log in once (or create an account); it is remembered.
 
+## Adding a shared lesson
+
+The app keeps the shared curriculum read-only; new lessons are added from
+this repo with the admin account:
+
+```sh
+node scripts/add_lesson.mjs <admin-email> <password> "2.1" lesson.csv
+```
+
+The CSV uses the learn_words format (header `nl,fr`, one pair per line — the
+⬇ CSV export of the app produces exactly this). The lesson appears live for
+all users immediately.
+
 ## How it works
 
 - **Data model**: the shared curriculum lives in `sharedLessons/{id}` (title)

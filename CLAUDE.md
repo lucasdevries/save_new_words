@@ -5,7 +5,8 @@ directly in the repo root and are served by GitHub Pages. Firebase Auth
 (email/password, open sign-up) and Firestore storage. The shared curriculum
 is in `sharedLessons/{id}` (title) and `sharedWords/{id}` (nl, fr, lesson) —
 read-only for users, writable only by the admin uid (Lucas, hardcoded in
-`firestore.rules`; curriculum changes go via REST scripts, not the app).
+`firestore.rules`). Curriculum changes go via scripts, not the app: new
+lessons with `scripts/add_lesson.mjs <email> <pw> <title> <csv>`.
 Personal data sits under `users/{uid}/`: `words/{id}` is the notebook
 (nl, fr, learned, wrong — progress on the doc) and `progress/{sharedWordId}`
 is that user's progress over shared words. The flashcard engine is ported
