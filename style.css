@@ -1,0 +1,52 @@
+/* Vormgeving overgenomen van learn_words (Mots). */
+:root { --bg:#f3f3f3; --card:#ffffff; --line:#e4e4e8; --txt:#1a1c22;
+        --muted:#6b7280; --accent:#4f9cff; --done:#2ec16b; --bad:#e05a5a; --btn:#f0f0f3; }
+:root[data-theme="dark"] {
+        --bg:#0f1115; --card:#171a21; --line:#262b36; --txt:#e6e9ef;
+        --muted:#8b93a7; --accent:#4f9cff; --done:#2ec16b; --bad:#e05a5a; --btn:#222734; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--txt);
+       font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+.wrap { max-width:560px; margin:0 auto; padding:24px 16px 64px; }
+h1 { font-size:20px; margin:0 0 16px; display:flex; align-items:center; gap:8px; }
+.row-top { display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+.count { color:var(--muted); font-size:14px; white-space:nowrap; }
+.pill { padding:9px 12px; border-radius:10px; border:1px solid var(--line);
+        background:var(--card); color:var(--txt); font-size:14px; cursor:pointer;
+        white-space:nowrap; }
+@media (hover:hover) and (pointer:fine) {
+  .pill:hover { border-color:var(--accent); }
+  .pill.danger:hover { border-color:var(--bad); color:var(--bad); }
+  .btn:hover { border-color:var(--accent); }
+  .btn.good:hover { background:var(--done); color:#fff; }
+}
+input { padding:12px 14px; border-radius:12px; border:1px solid var(--line);
+        background:var(--card); color:var(--txt); font-size:16px; min-width:0; }
+input:focus { outline:none; border-color:var(--accent); }
+#searchInput { flex:1; }
+.btn { padding:12px 22px; border-radius:12px; border:1px solid var(--line);
+       background:var(--btn); color:var(--txt); font-size:16px; cursor:pointer; }
+.btn.good { border-color:var(--done); color:var(--done); }
+.fcard { background:var(--card); border:1px solid var(--line); border-radius:12px;
+         padding:34px 22px; text-align:center; margin-bottom:14px;
+         display:flex; flex-direction:column; justify-content:center; gap:14px; }
+.addcard { background:var(--card); border:1px solid var(--line); border-radius:12px;
+           padding:16px; margin-bottom:18px; display:flex; flex-direction:column; gap:10px; }
+.banner { text-align:center; color:var(--bad); font-size:14px; }
+.hint { color:var(--muted); font-size:13px; text-align:center; }
+.theme-toggle { position:fixed; top:14px; right:14px; width:34px; height:34px;
+        border-radius:50%; border:1px solid var(--line); background:var(--card);
+        color:var(--txt); font-size:15px; cursor:pointer; line-height:1; z-index:10; }
+.empty { color:var(--muted); text-align:center; padding:40px; }
+.ovcard { background:var(--card); border:1px solid var(--line); border-radius:12px;
+          overflow:hidden; }
+.ovcard:empty { display:none; }
+.ovrow { display:flex; gap:12px; align-items:baseline; padding:9px 14px;
+         border-bottom:1px solid var(--line); font-size:15px; }
+.ovrow:last-child { border-bottom:none; }
+.ovrow .ovnl { flex:1; }
+.ovrow .ovfr { flex:1; color:var(--accent); }
+.ovrow .ovdel { flex:none; border:none; background:none; color:var(--muted);
+                font-size:14px; cursor:pointer; padding:0 2px; }
+.ovrow .ovdel:hover { color:var(--bad); }
+.hidden { display:none !important; }
