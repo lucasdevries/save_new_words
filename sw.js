@@ -1,7 +1,7 @@
 // Simpele service worker: app-schil network-first (altijd vers online, cache
 // als offline-fallback). Alleen same-origin; Firestore regelt zijn eigen
 // offline-cache. Bumping CACHE bij een release ruimt oude caches op.
-const CACHE = 'zwart-boekje-v0.1.0';
+const CACHE = 'zwart-boekje-v0.2.0';
 
 self.addEventListener('install', e => self.skipWaiting());
 

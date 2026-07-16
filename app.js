@@ -10,7 +10,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 import firebaseConfig from "./firebase-config.js";
 
-const APP_VERSION = "0.1.0";
+const APP_VERSION = "0.2.0";
 const $ = s => document.querySelector(s);
 $("#version").textContent = "v" + APP_VERSION;
 
@@ -107,6 +107,22 @@ function start() {
   };
   $("#nlInput").addEventListener("keydown", e => { if (e.key === "Enter") $("#frInput").focus(); });
   $("#frInput").addEventListener("keydown", e => { if (e.key === "Enter") $("#addBtn").click(); });
+
+  // ---- CSV-export (formaat van learn_words: header nl,fr) ----
+  function csvField(s) {
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+  $("#exportBtn").onclick = () => {
+    const rows = ["nl,fr", ...words.slice().reverse()  // oudste eerst
+      .map(w => csvField(w.nl) + "," + csvField(w.fr))];
+    // BOM vooraan: learn_words leest utf-8-sig en Excel opent 'm dan goed.
+    const blob = new Blob(["\uFEFF" + rows.join("\n") + "\n"], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "woorden.csv";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
 
   // ---- lijst ----
   $("#searchInput").oninput = renderList;
