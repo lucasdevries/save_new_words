@@ -16,7 +16,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 import firebaseConfig from "./firebase-config.js";
 
-const APP_VERSION = "0.5.0";
+const APP_VERSION = "0.6.0";
 const NOTEBOOK = "__notebook";   // pseudo-lesson id for the personal notebook
 const $ = s => document.querySelector(s);
 $("#version").textContent = "v" + APP_VERSION;
@@ -302,6 +302,22 @@ function speak(text) {
 }
 $("#speakBtn").onclick = () => { if (card) speak(card.fr); };
 
+// ---- practice direction (NL → FR or FR → NL) — persisted ----------------------
+let dir = localStorage.getItem("direction") === "frnl" ? "frnl" : "nlfr";
+const promptOf = w => dir === "nlfr" ? w.nl : w.fr;
+const answerOf = w => dir === "nlfr" ? w.fr : w.nl;
+function updateDirBtn() {
+  $("#dirToggle").textContent = dir === "nlfr" ? "🇳🇱 → 🇫🇷" : "🇫🇷 → 🇳🇱";
+  $("#typeInput").placeholder =
+    dir === "nlfr" ? "Type the French translation…" : "Type the Dutch translation…";
+}
+$("#dirToggle").onclick = () => {
+  dir = dir === "nlfr" ? "frnl" : "nlfr";
+  localStorage.setItem("direction", dir);
+  updateDirBtn();
+};
+updateDirBtn();
+
 // ---- type mode (answer by typing) — optional toggle, persisted ----------------
 let typeOn = localStorage.getItem("typemode") === "1";
 function updateTypeBtn() { $("#typeToggle").classList.toggle("active", typeOn); }
@@ -333,7 +349,7 @@ function renderPick() {
   const none = lessons.length === 0;
   $("#noLessons").classList.toggle("hidden", !none);
   ["#lessonSelect", "#pickCount", "#startNew", "#startAll", "#resetLesson",
-   "#testBtn", "#weakBtn", "#typeToggle", "#testHint"]
+   "#testBtn", "#weakBtn", "#typeToggle", "#dirToggle", "#testHint"]
     .forEach(s => $(s).classList.toggle("hidden", none));
   $(".bar").classList.toggle("hidden", none);
   if (none) return;
@@ -427,11 +443,12 @@ function nextCard() {
   }
   card = queue.shift(); revealed = false; roundDone++;
   $("#sessCount").textContent = `${roundDone} / ${roundTotal}`;
-  $("#cardNl").textContent = card.nl;
-  $("#cardFr").textContent = card.fr;
+  $("#cardNl").textContent = promptOf(card);
+  $("#cardFr").textContent = answerOf(card);
   $("#cardFr").classList.add("hidden");
   $("#typeFb").classList.add("hidden");
-  $("#speakRow").classList.add("hidden");
+  // FR → NL: the French is the visible prompt, so it can be spoken right away.
+  $("#speakRow").classList.toggle("hidden", !(hasTTS && dir === "frnl"));
   $("#judgeActions").classList.add("hidden");
   $("#nextActions").classList.add("hidden");
   $("#goodBtn").textContent = "✓ Correct";
@@ -464,10 +481,10 @@ function check() {
   $("#typeActions").classList.add("hidden");
   const fb = $("#typeFb");
   fb.classList.remove("hidden");
-  if (norm(guess) && norm(guess) === norm(card.fr)) {
+  if (norm(guess) && norm(guess) === norm(answerOf(card))) {
     fb.textContent = "✓ Correct!"; fb.style.color = "var(--done)";
     $("#nextActions").classList.remove("hidden");
-  } else if (norm(guess) && deacc(norm(guess)) === deacc(norm(card.fr))) {
+  } else if (norm(guess) && deacc(norm(guess)) === deacc(norm(answerOf(card)))) {
     fb.textContent = "≈ Almost — mind the accents"; fb.style.color = "var(--done)";
     $("#nextActions").classList.remove("hidden");
   } else {
