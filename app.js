@@ -16,7 +16,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 import firebaseConfig from "./firebase-config.js";
 
-const APP_VERSION = "0.7.0";
+const APP_VERSION = "0.7.1";
 const NOTEBOOK = "__notebook";   // pseudo-lesson id for the personal notebook
 const $ = s => document.querySelector(s);
 $("#version").textContent = "v" + APP_VERSION;
