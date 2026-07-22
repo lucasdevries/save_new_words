@@ -6,7 +6,8 @@ directly in the repo root and are served by GitHub Pages. Firebase Auth
 is in `sharedLessons/{id}` (title) and `sharedWords/{id}` (nl, fr, lesson) —
 read-only for users, writable only by the admin uid (Lucas, hardcoded in
 `firestore.rules`). Curriculum changes go via scripts, not the app: new
-lessons with `scripts/add_lesson.mjs <email> <pw> <title> <csv>`.
+lessons with `scripts/add_lesson.mjs <email> <pw> <title> <csv>`; the
+source CSVs live in `lists/` (title = filename).
 Personal data sits under `users/{uid}/`: `words/{id}` is the notebook
 (nl, fr, learned, wrong — progress on the doc) and `progress/{sharedWordId}`
 is that user's progress over shared words. The flashcard engine is ported
