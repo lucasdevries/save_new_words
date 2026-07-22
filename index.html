@@ -36,6 +36,7 @@
     <div class="tabs">
       <button class="pill" id="tabNotebook">📓 Notebook</button>
       <button class="pill" id="tabPractice">🎓 Practice</button>
+      <button class="pill" id="tabSpeak">🗣️ Speak</button>
     </div>
 
     <!-- notebook: add + browse -->
@@ -114,6 +115,20 @@
         <button class="btn good" id="nextBtn">Next →</button>
       </div>
       <p class="hint" id="kbHint"></p>
+    </div>
+
+    <!-- speak: shadowing lessons (FR clips + NL translation), from learn_french -->
+    <div id="speak" class="hidden">
+      <div class="row-top tight">
+        <select id="speakLessonSelect"></select>
+      </div>
+      <div class="row-top">
+        <button class="pill" id="speakBlurToggle" title="Blur translations until tapped">Blur</button>
+        <button class="pill" id="speakSpeedToggle" title="Playback speed">1×</button>
+        <span class="count" id="speakCount" style="margin-left:auto"></span>
+      </div>
+      <div id="speakList"></div>
+      <div class="empty hidden" id="speakEmpty"></div>
     </div>
 
     <!-- session done -->

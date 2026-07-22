@@ -16,7 +16,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 import firebaseConfig from "./firebase-config.js";
 
-const APP_VERSION = "0.6.0";
+const APP_VERSION = "0.7.0";
 const NOTEBOOK = "__notebook";   // pseudo-lesson id for the personal notebook
 const $ = s => document.querySelector(s);
 $("#version").textContent = "v" + APP_VERSION;
@@ -73,13 +73,16 @@ function rebuildView() {
 
 // ---- screens ----------------------------------------------------------------
 // Two levels: login vs app, and within the app the sub-screens. The notebook
-// tab owns "notebook"; the practice tab owns pick/session/done.
+// tab owns "notebook"; the practice tab owns pick/session/done; the speak tab
+// owns "speak".
 function show(id) {
   ["login", "app"].forEach(s => $("#" + s).classList.toggle("hidden", s !== (id === "login" ? "login" : "app")));
   if (id === "login") return;
-  ["notebook", "pick", "session", "done"].forEach(s => $("#" + s).classList.toggle("hidden", s !== id));
+  ["notebook", "pick", "session", "done", "speak"].forEach(s => $("#" + s).classList.toggle("hidden", s !== id));
   $("#tabNotebook").classList.toggle("active", id === "notebook");
-  $("#tabPractice").classList.toggle("active", id !== "notebook");
+  $("#tabPractice").classList.toggle("active", id === "pick" || id === "session" || id === "done");
+  $("#tabSpeak").classList.toggle("active", id === "speak");
+  if (id !== "speak") speakAudio.pause();
 }
 $("#tabNotebook").onclick = () => show("notebook");
 $("#tabPractice").onclick = () => { renderPick(); };
@@ -122,6 +125,7 @@ onAuthStateChanged(auth, user => {
   if (!user) {
     uid = null;
     sharedLessons = []; sharedWords = []; myWords = []; progress = {};
+    speakDone = new Set();
     show("login");
     return;
   }
@@ -143,6 +147,10 @@ onAuthStateChanged(auth, user => {
   unsubs.push(onSnapshot(collection(db, "users", uid, "progress"), snap => {
     progress = Object.fromEntries(snap.docs.map(d => [d.id, d.data()]));
     rebuildView();
+  }));
+  unsubs.push(onSnapshot(collection(db, "users", uid, "speakDone"), snap => {
+    speakDone = new Set(snap.docs.map(d => d.id));
+    if (!$("#speak").classList.contains("hidden")) refreshSpeakRows();
   }));
 });
 
@@ -544,6 +552,161 @@ document.addEventListener("keydown", e => {
   else if (e.key === "ArrowRight") judge(true);
   else if (e.key === "ArrowLeft") judge(false);
 });
+
+// ---- speak: shadowing lessons ported from learn_french -------------------------
+// Static lesson material under speak/ (lessons.json + media clips), imported
+// from ../learn_french with scripts/add_speak_lessons.mjs — FR audio + text
+// with the NL translation, so FR -> NL only. Done-state is per user in
+// users/{uid}/speakDone/{slug:index}, synced like the rest.
+let speakLessons = null;   // null until the tab is first opened
+let speakCur = 0;
+let speakDone = new Set();  // filled by the Firestore listener
+const speakAudio = new Audio();
+const speakKey = (l, i) => l.slug + ":" + i;
+
+const PLAY_SVG  = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+const PAUSE_SVG = '<svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>';
+
+const SPEAK_SPEEDS = [1, 0.9, 0.8, 0.7];
+let speakSpeed = parseFloat(localStorage.getItem("speakSpeed")) || 1;
+$("#speakSpeedToggle").onclick = () => {
+  speakSpeed = SPEAK_SPEEDS[(SPEAK_SPEEDS.indexOf(speakSpeed) + 1) % SPEAK_SPEEDS.length];
+  localStorage.setItem("speakSpeed", speakSpeed);
+  speakAudio.playbackRate = speakSpeed;
+  $("#speakSpeedToggle").textContent = speakSpeed + "×";
+};
+$("#speakSpeedToggle").textContent = speakSpeed + "×";
+speakAudio.addEventListener("loadedmetadata", () => { speakAudio.playbackRate = speakSpeed; });
+
+let speakBlur = localStorage.getItem("speakBlur") !== "0";
+$("#speakBlurToggle").onclick = () => {
+  speakBlur = !speakBlur;
+  localStorage.setItem("speakBlur", speakBlur ? "1" : "0");
+  $("#speakBlurToggle").classList.toggle("active", speakBlur);
+  renderSpeak();
+};
+$("#speakBlurToggle").classList.toggle("active", speakBlur);
+
+$("#tabSpeak").onclick = async () => {
+  show("speak");
+  if (speakLessons === null) {
+    $("#speakEmpty").textContent = "Loading lessons…";
+    $("#speakEmpty").classList.remove("hidden");
+    try {
+      const r = await fetch("speak/lessons.json");
+      if (!r.ok) throw new Error(r.status);
+      speakLessons = await r.json();
+    } catch {
+      $("#speakEmpty").textContent = "Could not load the speak lessons.";
+      return;   // speakLessons stays null -> retried on the next tab click
+    }
+    const sel = $("#speakLessonSelect");
+    sel.innerHTML = "";
+    speakLessons.forEach((l, i) => sel.append(new Option(l.title, i)));
+    sel.value = speakCur = 0;
+  }
+  renderSpeak();
+};
+$("#speakLessonSelect").onchange = e => { speakCur = +e.target.value; renderSpeak(); };
+
+let playingRow = null, playingBtn = null;
+function stopSpeak() {
+  speakAudio.pause();
+  if (playingRow) playingRow.classList.remove("playing");
+  if (playingBtn) playingBtn.innerHTML = PLAY_SVG;
+  playingRow = playingBtn = null;
+}
+
+function updateSpeakCount() {
+  const l = speakLessons?.[speakCur];
+  if (!l) { $("#speakCount").textContent = ""; return; }
+  const d = l.sentences.filter((s, i) => speakDone.has(speakKey(l, i))).length;
+  $("#speakCount").textContent = `${d} / ${l.sentences.length} done`;
+}
+
+// Toggle optimistically; the snapshot listener confirms (offline, the write
+// stays queued like everywhere else in the app).
+function toggleSpeakDone(l, i) {
+  const k = speakKey(l, i);
+  const ref = doc(db, "users", uid, "speakDone", k);
+  if (speakDone.has(k)) { speakDone.delete(k); deleteDoc(ref).catch(() => {}); }
+  else { speakDone.add(k); setDoc(ref, { done: true }).catch(() => {}); }
+  refreshSpeakRows();
+}
+
+// Patch done-state onto the existing rows (no rebuild: a rebuild would stop
+// a clip that is playing).
+function refreshSpeakRows() {
+  const l = speakLessons?.[speakCur];
+  if (!l) return;
+  [...$("#speakList").children].forEach((row, i) => {
+    const on = speakDone.has(speakKey(l, i));
+    row.classList.toggle("done", on);
+    row.querySelectorAll(".rbtn")[1]?.classList.toggle("done-on", on);
+  });
+  updateSpeakCount();
+}
+
+function playClip(s, row, btn) {
+  if (row === playingRow) {                       // toggle pause/resume
+    if (speakAudio.paused) speakAudio.play().catch(() => {});
+    else speakAudio.pause();
+    return;
+  }
+  if (playingRow) playingRow.classList.remove("playing");
+  if (playingBtn) playingBtn.innerHTML = PLAY_SVG;
+  playingRow = row; playingBtn = btn;
+  row.classList.add("playing");
+  speakAudio.src = s.clip;
+  speakAudio.playbackRate = speakSpeed;
+  speakAudio.play().catch(() => {});
+}
+speakAudio.addEventListener("play",  () => { if (playingBtn) playingBtn.innerHTML = PAUSE_SVG; });
+speakAudio.addEventListener("pause", () => { if (playingBtn) playingBtn.innerHTML = PLAY_SVG; });
+// Deliberately no auto-done when a clip finishes — the row stays open and only
+// the ✓ button (which also works without playing) marks it done.
+speakAudio.addEventListener("ended", () => {
+  if (playingRow) playingRow.classList.remove("playing");
+  if (playingBtn) playingBtn.innerHTML = PLAY_SVG;
+  playingRow = playingBtn = null;
+});
+
+function renderSpeak() {
+  if (!speakLessons) return;
+  stopSpeak();
+  const l = speakLessons[speakCur];
+  $("#speakEmpty").classList.toggle("hidden", !!l);
+  if (!l) { $("#speakEmpty").textContent = "No speak lessons yet."; return; }
+  const box = $("#speakList");
+  box.innerHTML = "";
+  l.sentences.forEach((s, i) => {
+    const row = document.createElement("div");
+    row.className = "srow";
+    if (speakDone.has(speakKey(l, i))) row.classList.add("done");
+    const num = document.createElement("span"); num.className = "snum"; num.textContent = i + 1;
+    const body = document.createElement("div"); body.className = "sbody";
+    const text = document.createElement("div"); text.textContent = s.text;
+    body.append(text);
+    if (s.nl) {
+      const tr = document.createElement("div");
+      tr.className = "strans" + (speakBlur ? " blur" : "");
+      tr.textContent = s.nl;
+      if (speakBlur) tr.onclick = () => tr.classList.toggle("revealed");
+      body.append(tr);
+    }
+    const play = document.createElement("button");
+    play.className = "rbtn"; play.title = "Play"; play.innerHTML = PLAY_SVG;
+    if (s.clip) play.onclick = () => playClip(s, row, play);
+    else play.disabled = true;
+    const ok = document.createElement("button");
+    ok.className = "rbtn" + (speakDone.has(speakKey(l, i)) ? " done-on" : "");
+    ok.title = "Mark done"; ok.textContent = "✓";
+    ok.onclick = () => toggleSpeakDone(l, i);
+    row.append(num, body, play, ok);
+    box.appendChild(row);
+  });
+  updateSpeakCount();
+}
 
 if ("serviceWorker" in navigator)
   navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).catch(() => {});

@@ -73,4 +73,24 @@ input:focus { outline:none; border-color:var(--accent); }
 .tabs { display:flex; gap:10px; margin-bottom:18px; }
 .text-btn { border:none; background:none; color:var(--accent); cursor:pointer;
             font-size:14px; padding:0; }
+/* speak tab — sentence rows adopted from learn_french (Shadow YouTube) */
+.srow { display:flex; align-items:center; gap:12px; padding:12px 14px; margin-bottom:8px;
+        background:var(--card); border:1px solid var(--line); border-radius:12px; }
+.srow.done { opacity:.55; }
+.srow.playing { border-color:var(--accent); }
+.snum { color:var(--muted); font-size:13px; min-width:22px; text-align:right;
+        align-self:flex-start; padding-top:2px; }
+.sbody { flex:1; }
+.strans { color:var(--muted); font-size:14px; font-weight:300; margin-top:3px; }
+.strans.blur { filter:blur(5px); cursor:pointer; user-select:none; transition:filter .12s; }
+.strans.revealed { filter:none; cursor:default; user-select:auto; }
+.rbtn { width:40px; height:40px; border-radius:50%; border:1px solid var(--line);
+        background:var(--btn); color:var(--txt); cursor:pointer; flex:0 0 auto;
+        display:flex; align-items:center; justify-content:center; font-size:15px; }
+.rbtn svg { width:15px; height:15px; fill:currentColor; }
+.rbtn.done-on { border-color:var(--done); color:var(--done); }
+@media (hover:hover) and (pointer:fine) {
+  .rbtn:hover { border-color:var(--accent); }
+  .strans.blur:hover { filter:none; }
+}
 .hidden { display:none !important; }

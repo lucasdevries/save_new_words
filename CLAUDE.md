@@ -13,6 +13,14 @@ is that user's progress over shared words. The flashcard engine is ported
 from `../learn_words`; keep the behaviour aligned. See README.md for the
 one-time setup.
 
+The Speak tab (shadowing: FR audio clips + NL translation, FR → NL only) is
+ported from `../learn_french`. Its lesson material is static in `speak/`
+(`lessons.json` + `media/<slug>/NNN.m4a`) — served by GitHub Pages, not
+Firestore. Lessons are *created* in the learn_french app (this app has no
+upload UI); import new ones with `node scripts/add_speak_lessons.mjs`
+(re-reads `../learn_french/lessons`, idempotent) and commit. Done-state is
+per device (localStorage), deliberately not synced.
+
 - Test locally: `python3 -m http.server 8000` → http://localhost:8000
 - Deploy: simply commit and push to `main` (GitHub Pages).
 - `firebase-config.js` contains the (public) project config; security lives in
