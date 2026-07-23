@@ -73,22 +73,25 @@ input:focus { outline:none; border-color:var(--accent); }
 .tabs { display:flex; gap:10px; margin-bottom:18px; }
 .text-btn { border:none; background:none; color:var(--accent); cursor:pointer;
             font-size:14px; padding:0; }
-/* speak tab — sentence rows adopted from learn_french (Shadow YouTube) */
-.srow { display:flex; align-items:flex-start; gap:12px; padding:12px 14px; margin-bottom:8px;
+/* speak tab — sentence rows adopted from learn_french (Shadow YouTube).
+   The number is a fixed left gutter; the button cluster floats right inside
+   the text column so the sentence wraps around it — short sentences stay one
+   line, long ones reclaim the full width under the buttons. */
+.srow { display:flex; gap:10px; padding:12px 14px; margin-bottom:8px;
         background:var(--card); border:1px solid var(--line); border-radius:12px; }
-.rbtns { display:flex; flex-direction:column; gap:8px; flex:0 0 auto; }
 .srow.done { opacity:.55; }
 .srow.playing { border-color:var(--accent); }
-.snum { color:var(--muted); font-size:13px; min-width:22px; text-align:right;
-        align-self:flex-start; padding-top:2px; }
-.sbody { flex:1; }
+.snum { flex:0 0 auto; width:18px; text-align:right; color:var(--muted); font-size:13px;
+        padding-top:2px; }
+.sbody { flex:1; min-width:0; overflow:hidden; }
+.rbtns { float:right; display:flex; gap:6px; margin:0 0 6px 10px; }
 .strans { color:var(--muted); font-size:14px; font-weight:300; margin-top:3px; }
 .strans.blur { filter:blur(5px); cursor:pointer; user-select:none; transition:filter .12s; }
 .strans.revealed { filter:none; cursor:default; user-select:auto; }
-.rbtn { width:40px; height:40px; border-radius:50%; border:1px solid var(--line);
+.rbtn { width:34px; height:34px; border-radius:50%; border:1px solid var(--line);
         background:var(--btn); color:var(--txt); cursor:pointer; flex:0 0 auto;
-        display:flex; align-items:center; justify-content:center; font-size:15px; }
-.rbtn svg { width:15px; height:15px; fill:currentColor; }
+        display:flex; align-items:center; justify-content:center; font-size:14px; }
+.rbtn svg { width:13px; height:13px; fill:currentColor; }
 .rbtn.done-on { border-color:var(--done); color:var(--done); }
 .rbtn.added { border-color:var(--accent); color:var(--accent); background:var(--btn); }
 @media (hover:hover) and (pointer:fine) {
