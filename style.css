@@ -89,6 +89,7 @@ input:focus { outline:none; border-color:var(--accent); }
         display:flex; align-items:center; justify-content:center; font-size:15px; }
 .rbtn svg { width:15px; height:15px; fill:currentColor; }
 .rbtn.done-on { border-color:var(--done); color:var(--done); }
+.rbtn.added { border-color:var(--accent); color:var(--accent); background:var(--btn); }
 @media (hover:hover) and (pointer:fine) {
   .rbtn:hover { border-color:var(--accent); }
   .strans.blur:hover { filter:none; }

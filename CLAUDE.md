@@ -9,9 +9,12 @@ read-only for users, writable only by the admin uid (Lucas, hardcoded in
 lessons with `scripts/add_lesson.mjs <email> <pw> <title> <csv>`; the
 source CSVs live in `lists/` (title = filename).
 Personal data sits under `users/{uid}/`: `words/{id}` is the notebook
-(nl, fr, learned, wrong — progress on the doc) and `progress/{sharedWordId}`
-is that user's progress over shared words. The flashcard engine is ported
-from `../learn_words`; keep the behaviour aligned. See README.md for the
+(nl, fr, learned, wrong — progress on the doc), `speakWords/{id}` is the
+speaking notebook (same shape; sentences added from the Speak tab), and
+`progress/{sharedWordId}` is that user's progress over shared words. Both
+notebooks appear in Practice/Notebook as pseudo-lessons (`__notebook`,
+`__speak`) and share the flashcard engine, which is ported from
+`../learn_words`; keep the behaviour aligned. See README.md for the
 one-time setup.
 
 The Speak tab (shadowing: FR audio clips + NL translation, FR → NL only) is
@@ -19,8 +22,9 @@ ported from `../learn_french`. Its lesson material is static in `speak/`
 (`lessons.json` + `media/<slug>/NNN.m4a`) — served by GitHub Pages, not
 Firestore. Lessons are *created* in the learn_french app (this app has no
 upload UI); import new ones with `node scripts/add_speak_lessons.mjs`
-(re-reads `../learn_french/lessons`, idempotent) and commit. Done-state is
-per device (localStorage), deliberately not synced.
+(re-reads `../learn_french/lessons`, idempotent) and commit. Each row has
+play / done / ＋; ＋ copies the sentence into the speaking notebook. Done-state
+syncs per user in `users/{uid}/speakDone/{slug:index}`.
 
 - Test locally: `python3 -m http.server 8000` → http://localhost:8000
 - Deploy: simply commit and push to `main` (GitHub Pages).
