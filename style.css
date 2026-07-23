@@ -74,8 +74,9 @@ input:focus { outline:none; border-color:var(--accent); }
 .text-btn { border:none; background:none; color:var(--accent); cursor:pointer;
             font-size:14px; padding:0; }
 /* speak tab — sentence rows adopted from learn_french (Shadow YouTube) */
-.srow { display:flex; align-items:center; gap:12px; padding:12px 14px; margin-bottom:8px;
+.srow { display:flex; align-items:flex-start; gap:12px; padding:12px 14px; margin-bottom:8px;
         background:var(--card); border:1px solid var(--line); border-radius:12px; }
+.rbtns { display:flex; flex-direction:column; gap:8px; flex:0 0 auto; }
 .srow.done { opacity:.55; }
 .srow.playing { border-color:var(--accent); }
 .snum { color:var(--muted); font-size:13px; min-width:22px; text-align:right;

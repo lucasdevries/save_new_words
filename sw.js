@@ -3,7 +3,7 @@
 // offline cache. Bumping CACHE on a release cleans up old caches.
 // Speak audio clips are immutable, so they go cache-first into MEDIA_CACHE,
 // which survives releases (no re-download of ~140MB after every bump).
-const CACHE = 'wordlist-v0.8.0';
+const CACHE = 'wordlist-v0.8.1';
 // media-v2: the 0.7.3 re-import changed clip content on existing URLs, so the
 // old media cache had to be evicted. Only bump this when clips change in
 // place; it forces every device to re-download all audio.
